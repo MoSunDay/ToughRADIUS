@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="">
+        <meta name="author" content="">
+        <link rel="shortcut icon" href="/static/media/image/favicon.ico"/>
+        <title>${system_name or ''}</title>
+        <link href="/static/css/bootstrap.min.css" rel="stylesheet" media="all">
+        <link href="/static/css/manage.css" rel="stylesheet" media="all">     
+        <script src="/static/js/jquery-1.11.0.min.js"></script>
+        <script src="/static/js/bootstrap.min.js"></script>
+        <script src="/static/js/json2.js"></script>
+        <!-- Just for debugging purposes. Don't actually copy this line! -->
+        <!--[if lt IE 9]>
+        <script src="/static/js/ie8-responsive-file-warning.js"></script><![endif]-->
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+        <script src="/static/js/html5shiv.min.js"></script>
+        <script src="/static/js/respond.min.js"></script>
+        <![endif]-->
+        ${self.head()}
+    </head>
+        <body>
+            <div class="navbar  navbar-inverse" role="navigation">
+                <div class="container">
+                    <div class="navbar-header">
+                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="/">${system_name}</a>
+                </div>
+            </div>
+        </div>
+            <div class="navbar2">
+            <span class="notify_text col-md-6"> 欢迎登陆:${get_cookie("username")}</span>
+            <ul class="top-menu pull-right">
+                <li><a href="/">管理首页</a></li>
+                <li><a href="/passwd">修改密码</a></li>
+                <li><a href="/logout">退出</a></li>
+            </ul>
+        </div>
+            <div class="container">
+                <div class="row">
+                    <div class="col-md-2 " id="sidebar">
+                    <!-- accordion1 -->
+                        <div class="accordion" id="accordion1">
+                            <div class="accordion-group">
+                                <div class="accordion-heading left-header">
+                                <span class="glyphicon glyphicon-play-circle"></span>
+                                <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion1" href="#collapseOne">系统管理</a>
+                                </div>
+                                <div id="collapseOne" class="accordion-body collapse in">
+                                    <div class="accordion-inner ">
+                                        <li><a href="/param">系统参数配置</a></li>
+                                        <li><a href="/node">区域信息管理</a></li>
+                                        <li><a href="/bas">BAS信息管理</a></li>
+                                        <li><a href="/group">用户组管理</a></li>
+                                        <li><a href="/roster">黑白名单管理</a></li>
+                                        <li><a href="/product">资费信息管理</a></li>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <!-- accordion2 -->
+                        <div class="accordion" id="accordion2">
+                            <div class="accordion-group">
+                                <div class="accordion-heading left-header">
+                                <span class="glyphicon glyphicon-play-circle"></span>
+                                <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion2" href="#collapseTwo">营业管理</a>
+                                </div>
+                                <div id="collapseTwo" class="accordion-body collapse in">
+                                    <div class="accordion-inner ">
+                                       <li><a href="/bus/member">用户信息管理</a></li>
+                                       <li><a href="/bus/member/open">用户快速开户</a></li>
+                                       <li><a href="/bus/member/import">用户数据导入</a></li>
+                                       <li><a href="/bus/acceptlog">用户受理查询</a></li>
+                                       <li><a href="/bus/billing">用户计费查询</a></li>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>   
+                    <!-- accordion3 -->
+                        <div class="accordion" id="accordion3">
+                            <div class="accordion-group">
+                                <div class="accordion-heading left-header">
+                                <span class="glyphicon glyphicon-play-circle"></span>
+                                <a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion3" href="#collapseThree">运维管理</a>
+                                </div>
+                                <div id="collapseThree" class="accordion-body collapse in">
+                                    <div class="accordion-inner ">
+                                       <li><a href="/ops/user">上网账号查询</a></li>
+                                        <li><a href="/ops/user/trace">用户消息跟踪</a></li>
+                                        <li><a href="/ops/online">在线用户查询</a></li>
+                                        <li><a href="/ops/ticket">上网日志查询</a></li>
+                                        <li><a href="/ops/opslog">操作日志查询</a></li>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>                                               
+                </div>
+                <div class="col-md-9 main-box">
+                    ${self.body()}
+                </div>
+            </div>
+        </div>
+            <div id="footer">
+                <div class="container">
+                <p class="text-muted">© 2014 toughradius.org</p>
+            </div>
+        </div>
+    </body>
+</html>

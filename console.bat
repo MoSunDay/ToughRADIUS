@@ -1,1 +1,0 @@
-cd console && ..\toughrad.exe admin.py -c ../config.json || pause

@@ -8,9 +8,9 @@ ToughRADIUS支持MySQL存储用户数据，支持数据缓存，极大的提高�
 
 ToughRADIUS支持Windows，Linux跨平台部署，部署使用简单。
 
-提供了RADIUS核心服务引擎与Web管理控制台两个子系统，核心服务引擎提供高性能的认证计费服务，Web管理控制台提供了界面友好，功能完善的管理功能。
+提供了RADIUS核心服务引擎与Web管理控制台,用户自助服务三个子系统，核心服务引擎提供高性能的认证计费服务，Web管理控制台提供了界面友好，功能完善的管理功能。用户自助服务系统提供了一个面向终端用户的网上服务渠道。
 
-[ToughRADIUS网站：http:://www.toughradius.net] (http:://www.toughradius.net)
+[ToughRADIUS网站：http://www.toughradius.net] (http://www.toughradius.net)
 
 ## 使用Docker镜像 
 
@@ -24,7 +24,7 @@ ToughRADIUS支持Windows，Linux跨平台部署，部署使用简单。
 
     docker run -d -v /var/toughradius:/var/toughradius \
       -p 3306:3306 -p 1812:1812/udp -p 1813:1813/udp \
-      -p 1815:1815 -p 1816:1816 \
+      -p 1815:1815 -p 1816:1816 -p 1817:1817\
       --name toughradius talkincode/centos7-toughradius 
 
 以上指令会在centos7中安装docker工具，并自动下载toughradius镜像以守护进程模式运行。

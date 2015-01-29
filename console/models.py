@@ -8,11 +8,29 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from hashlib import md5
 from libs import utils
 
-engine = create_engine('mysql://root:root@127.0.0.1:3306/mysql?charset=utf8')
 DeclarativeBase = declarative_base()
-metadata = DeclarativeBase.metadata
-metadata.bind = engine
- 
+
+def get_db_connstr(dbconf=None):
+    default_str = 'mysql://root:root@127.0.0.1:3306/mysql?charset=utf8'
+    if not dbconf:
+        return default_str
+    if dbconf['dbtype'] == 'mysql':
+        return 'mysql://%s:%s@%s:%s/%s?charset=%s'%(
+            dbconf['user'],
+            dbconf['passwd'],
+            dbconf['host'],
+            dbconf['port'],
+            dbconf['db'],
+            dbconf['charset'])
+    else:
+        return default_str
+    
+def get_engine(dbconf=None,echo=False):
+    engine = create_engine(get_db_connstr(dbconf),echo=echo)
+    metadata = DeclarativeBase.metadata
+    metadata.bind = engine
+    return engine,metadata
+    
 class SlcNode(DeclarativeBase):
     """区域表"""
     __tablename__ = 'slc_node'
@@ -195,13 +213,15 @@ class SlcRadAccountAttr(DeclarativeBase):
     attr_desc = Column(u'attr_desc', VARCHAR(length=255),doc=u"属性描述")    
 
 class SlcRadProduct(DeclarativeBase):
-    '''资费信息表 <radiusd default table>'''
+    '''
+    资费信息表 <radiusd default table>
+    销售状态 product_status 0 正常 1 停用 资费停用后不允许再订购
+    '''
     __tablename__ = 'slc_rad_product'
 
     __table_args__ = {}
 
     id = Column('id', INTEGER(),primary_key=True,autoincrement=1,nullable=False,doc=u"资费id")
-    node_id = Column('node_id', INTEGER(), nullable=False,doc=u"区域id")
     product_name = Column('product_name', VARCHAR(length=64), nullable=False,doc=u"资费名称")
     product_policy = Column('product_policy', INTEGER(), nullable=False,doc=u"资费策略")
     product_status = Column('product_status', SMALLINT(), nullable=False,doc=u"资费状态")    
@@ -333,24 +353,7 @@ class SlcRadOperateLog(DeclarativeBase):
     operator_name = Column(u'operator_name', VARCHAR(32), nullable=False,doc=u"操作员名称")
     operate_ip = Column(u'operate_ip', VARCHAR(length=128),doc=u"操作员ip")
     operate_time = Column(u'operate_time', VARCHAR(length=19), nullable=False,doc=u"操作时间")
-    operate_desc = Column(u'operate_desc', VARCHAR(length=512),doc=u"操作描述")
-
-
-def build_db(config=None):
-    global engine
-    engine = create_engine('mysql://%s:%s@%s:3306/mysql?charset=utf8'%(
-                    config['user'],config['passwd'],config['host']))
-    conn = engine.connect()
-    try:
-        conn.execute("drop database %s"%config['db'])
-    except:
-        pass
-    conn.execute("create database %s DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci"%config['db'])
-    conn.execute("commit")
-    conn.close()
-    engine = create_engine('mysql://%s:%s@%s:3306/%s?charset=utf8'%(
-                    config['user'],config['passwd'],config['host'],config['db']))
-    metadata.create_all(engine,checkfirst=True)    
+    operate_desc = Column(u'operate_desc', VARCHAR(length=1024),doc=u"操作描述")
 
 def init_db(db):
     node = SlcNode()
@@ -359,16 +362,58 @@ def init_db(db):
     node.node_desc = u'测试区域'
     db.add(node)
 
+    param0 = SlcParam()
+    param0.param_name = u'1_system_name'
+    param0.param_desc = u'管理系统名称'
+    param0.param_value = u'ToughRADIUS管理控制台'
+    db.add(param0)
+
+    param01 = SlcParam()
+    param01.param_name = u'2_member_system_name'
+    param01.param_desc = u'自助服务系统名称'
+    param01.param_value = u'ToughRADIUS自助服务中心'
+    db.add(param01)   
+
+    param02 = SlcParam()
+    param02.param_name = u'3_radiusd_address'
+    param02.param_desc = u'Radius服务IP地址'
+    param02.param_value = u'192.168.59.103'
+    db.add(param02)   
+    
+    param03 = SlcParam()
+    param03.param_name = u'4_radiusd_admin_port'
+    param03.param_desc = u'Radius服务管理端口'
+    param03.param_value = u'1815'
+    db.add(param03)     
+    
+    param04 = SlcParam()
+    param04.param_name = u'5_weixin_qrcode'
+    param04.param_desc = u'微信公众号二维码图片(宽度230px)'
+    param04.param_value = u'http://img.toughradius.net/toughforum/jamiesun/1421820686.jpg!230'
+    db.add(param04)    
+    
+    param05 = SlcParam()
+    param05.param_name = u'6_service_phone'
+    param05.param_desc = u'客户服务电话'
+    param05.param_value = u'000000'
+    db.add(param05)    
+    
+    param06 = SlcParam()
+    param06.param_name = u'7_service_qq'
+    param06.param_desc = u'客户服务QQ号码'
+    param06.param_value = u'000000'
+    db.add(param06)      
+
     param1 = SlcParam()
-    param1.param_name = 'max_session_timeout'
-    param1.param_desc = u'最大会话时长(秒)'
-    param1.param_value = '86400'
+    param1.param_name = u'max_session_timeout'
+    param1.param_desc = u'Radius最大会话时长(秒)'
+    param1.param_value = u'86400'
     db.add(param1)
 
     param2 = SlcParam()
-    param2.param_name = 'reject_delay'
-    param2.param_desc = u'拒绝延迟时间(秒),0-9'
-    param2.param_value = '7'
+    param2.param_name = u'reject_delay'
+    param2.param_desc = u'拒绝延迟时间(秒)(0-9)'
+    param2.param_value = u'7'
     db.add(param2)
   
 
@@ -498,82 +543,55 @@ def init_db(db):
 
     db.commit()
 
-def init_test(db):
-    for i in range(1000):
-        member = SlcMember()
-        member.member_id = 100000 + i
-        member.member_name = 'tester%s'%i
-        member.password = utils.encrypt('888888')
-        member.node_id = 1
-        member.realname = 'test00%s'%i
-        member.idcard = '0'
-        member.sex = '1'
-        member.age = '33'
-        member.email = 'wjt@lingyatech.com'
-        member.mobile = '1366666666'
-        member.address = 'hunan changsha'
-        member.create_time = '2014-12-10 23:23:21'
-        member.update_time = '2014-12-10 23:23:21'
-        db.add(member)        
-        account = SlcRadAccount()
-        account.account_number = 'test00%s'%i
-        account.member_id = member.member_id
-        account.product_id = 1
-        account.domain_name = 'cmcc'
-        account.group_id = 1
-        account.install_address = 'hunan'
-        account.ip_address = ''
-        account.mac_addr = ''
-        account.password = utils.encrypt('888888')
-        account.status = 1
-        account.balance = 0
-        account.basic_fee = 0
-        account.time_length = 0
-        account.flow_length = 0
-        account.expire_date = '2015-12-30'
-        account.user_concur_number = 0
-        account.bind_mac = 0
-        account.bind_vlan = 0
-        account.vlan_id = 0
-        account.vlan_id2 = 0
-        account.create_time = '2014-12-10 23:23:21'
-        account.update_time = '2014-12-10 23:23:21'
-        db.add(account)
-    db.commit()    
 
+def build_db(config=None):
+    if config['dbtype'] != 'mysql':
+       return update(config)
+    _default = config.copy()
+    _default['db'] = 'mysql'
+    engine,_ = get_engine(_default)
+    conn = engine.connect()
+    try:
+        drop_sql = "drop database %s"%config['db']
+        print drop_sql
+        conn.execute(drop_sql)      
+    except:
+        import traceback
+        traceback.print_exc()
+    
+    create_sql = "create database %s DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci"%config['db']
+    print create_sql
+    conn.execute(create_sql)
+    print 'commit'
+    conn.execute("commit")
+    conn.close()
+
+    engine,metadata = get_engine(config)
+    metadata.create_all(engine,checkfirst=True)  
 
 
 def install(config=None):
-
     print 'starting create and init database...'
     action = raw_input("drop and create database ?[n]")
     if action == 'y':
         build_db(config=config)
-
+        engine,_ = get_engine(config)
         db = scoped_session(sessionmaker(bind=engine, autocommit=False, autoflush=True))()  
         action = raw_input("init database ?[n]")
         if action == 'y':
             init_db(db)
 
-        action = raw_input("init testdata ?[n]")
-        if action == 'y':
-            init_test(db)
-            with open('./testusers.txt','wb') as tf:
-                for i in range(1000):
-                    tf.write('test00%s,%s\n'%(i,utils.encrypt('888888')))
 
 def install2(config=None):
     print 'starting create and init database...'
     build_db(config=config)
+    engine,_ = get_engine(config)
     db = scoped_session(sessionmaker(bind=engine, autocommit=False, autoflush=True))()  
     init_db(db)
 
 def update(config=None):
     print 'starting update database...'
-    global engine
-    engine = create_engine('mysql://%s:%s@%s:3306/%s?charset=utf8'%(
-                    config['user'],config['passwd'],config['host'],config['db']))
-
+    engine,metadata = get_engine(config)
     action = raw_input("rebuild database ?[n]")
     if action == 'y':
         metadata.drop_all(engine)      
@@ -583,8 +601,6 @@ def update(config=None):
     action = raw_input("init database ?[n]")
     if action == 'y':
         init_db(db)    
-
-
 
 if __name__ == '__main__':
     install()

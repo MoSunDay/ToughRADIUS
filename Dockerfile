@@ -9,11 +9,7 @@ MAINTAINER jamiesun <jamiesun.net@gmail.com>
 
 VOLUME ["/var/toughradius"]
 
-RUN mkdir -p /var/toughradius_run
-
 ADD docker/my.cnf /etc/
-ADD docker/supervisord.conf /var/toughradius_run/
-ADD docker/radiusd.json /var/toughradius_run/
 ADD docker/startup.sh /opt/
 ADD docker/upgrade.sh /opt/
 RUN chmod +x /opt/startup.sh   
@@ -39,7 +35,7 @@ RUN git clone https://github.com/talkincode/ToughRADIUS.git /opt/toughradius
 RUN pip install -r /opt/toughradius/requirements.txt
 
 
-EXPOSE 3306 1815 1816
+EXPOSE 3306 1815 1816 1817
 EXPOSE 1812/udp
 EXPOSE 1813/udp
 

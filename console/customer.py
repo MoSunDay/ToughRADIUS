@@ -3,52 +3,48 @@
 import sys,os
 sys.path.insert(0,os.path.split(__file__)[0])
 sys.path.insert(0,os.path.abspath(os.path.pardir))
+from twisted.python import log
+from bottle import request
+from bottle import response
 from bottle import TEMPLATE_PATH,MakoTemplate
 from bottle import run as runserver
-from admin.admin import app as mainapp
-from admin.ops import app as ops_app
-from admin.business import app as bus_app
-from base import *
-from libs import sqla_plugin
-from websock import websock
+from customer.customer import app as mainapp
+from base import (
+    get_cookie,
+    set_cookie,
+    get_param_value,
+    get_member_by_name,
+    get_account_by_number,
+    get_online_status
+)
+from libs import sqla_plugin,utils
 import functools
 import models
 
-def init_application(dbconf=None,consconf=None):
+def init_application(dbconf=None,cusconf=None):
     log.startLogging(sys.stdout)  
-    TEMPLATE_PATH.append("./admin/views/")
+    TEMPLATE_PATH.append("./customer/views/")
     ''' install plugins'''
     engine,metadata = models.get_engine(dbconf)
     sqla_pg = sqla_plugin.Plugin(engine,metadata,keyword='db',create=False,commit=False,use_kwargs=False)
-    _sys_param_value = functools.partial(get_param_value,sqla_pg.new_session())
+    session = sqla_pg.new_session()
+    _sys_param_value = functools.partial(get_param_value,session)
+    _get_member_by_name = functools.partial(get_member_by_name,session)
+    _get_account_by_number = functools.partial(get_account_by_number,session)
+    _get_online_status = functools.partial(get_online_status,session)
     MakoTemplate.defaults.update(**dict(
         get_cookie = get_cookie,
         fen2yuan = utils.fen2yuan,
         fmt_second = utils.fmt_second,
         request = request,
         sys_param_value = _sys_param_value,
-        system_name = _sys_param_value("1_system_name"),
-        radaddr = _sys_param_value('3_radiusd_address'),
-        adminport = _sys_param_value('4_radiusd_admin_port')
+        system_name = _sys_param_value("2_member_system_name"),
+        get_member = _get_member_by_name,
+        get_account = _get_account_by_number,
+        is_online = _get_online_status
     ))
     
-    # connect radiusd websocket admin port 
-    websock.connect(
-        MakoTemplate.defaults['radaddr'],
-        MakoTemplate.defaults['adminport'],
-    )
-
     mainapp.install(sqla_pg)
-    ops_app.install(sqla_pg)
-    bus_app.install(sqla_pg)
-
-    mainapp.mount("/ops",ops_app)
-    mainapp.mount("/bus",bus_app)
-
-    #create dir
-    try:
-        os.makedirs(os.path.join(APP_DIR,'static/xls'))
-    except:pass
 
 
 ###############################################################################
@@ -69,18 +65,20 @@ def main():
 
     _config = json.loads(open(args.conf).read())
     _database = _config['database']
-    _admin = _config['admin']
+    _customer = _config['customer']
 
-    if args.httpport:_admin['httpport'] = args.httpport
-    if args.debug:_admin['debug'] = bool(args.debug)
+    if args.httpport:
+        _customer['httpport'] = args.httpport
+    if args.debug:
+        _customer['debug'] = bool(args.debug)
 
-    init_application(dbconf=_database,consconf=_admin)
+    init_application(dbconf=_database,cusconf=_customer)
     
     runserver(
         mainapp, host='0.0.0.0', 
-        port=_admin['httpport'] ,
-        debug=bool(_admin['debug']),
-        reloader=bool(_admin['debug']),
+        port=_customer['httpport'] ,
+        debug=bool(_customer['debug']),
+        reloader=bool(_customer['debug']),
         server="twisted"
     )
 

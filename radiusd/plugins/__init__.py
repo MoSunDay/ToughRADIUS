@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 #coding=utf-8
+import sys,os
+sys.path.insert(0,os.path.abspath(os.path.pardir))
 from pyrad import packet
 from plugins import *
 __all__ = [

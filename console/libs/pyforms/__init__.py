@@ -1,8 +1,9 @@
 #coding:utf-8
+import sys,os
+sys.path.insert(0,os.path.abspath(os.path.pardir))
 import copy
 import re
 import itertools
-
 from libs.pyforms import net
 
 

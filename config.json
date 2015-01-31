@@ -3,19 +3,19 @@
     {
         "dbtype":"mysql",
         "maxusage": 10, 
-        "passwd": "123456",
+        "passwd": "radius",
         "charset": "utf8", 
         "db": "toughradius",
-        "host": "127.0.0.1",
+        "host": "192.168.59.103",
         "port": 3306,
-        "user": "root"
+        "user": "admin"
     },
     "radiusd":
     {
         "authport": 1812,
         "acctport": 1813,
         "adminport": 1815,
-        "allows":"192.168.0.2,192.168.2.2",
+        "allows":"192.168.88.100,192.168.88.100",
         "dictfile": "./radiusd/dict/dictionary",
         "debug":1,
         "cache_timeout":600

@@ -1,33 +1,35 @@
 {
-    "database": 
-    {
-        "dbtype":"mysql",
-        "maxusage": 10, 
-        "passwd": "radius",
-        "charset": "utf8", 
-        "db": "toughradius",
-        "host": "192.168.59.103",
-        "port": 3306,
-        "user": "admin"
+    "admin": {
+        "debug": 1,
+        "httpport": 1816
     },
-    "radiusd":
-    {
-        "authport": 1812,
+    "backup": {
+        "ftphost": "127.0.0.1",
+        "ftpport": 21,
+        "ftppwd": "ftppwd",
+        "ftpuser": "ftpuser"
+    },
+    "customer": {
+        "debug": 1,
+        "httpport": 1817
+    },
+    "database": {
+        "charset": "utf8",
+        "db": "toughradius",
+        "dbtype": "mysql",
+        "host": "127.0.0.1",
+        "maxusage": 10,
+        "passwd": "root",
+        "port": 3306,
+        "user": "root"
+    },
+    "radiusd": {
         "acctport": 1813,
         "adminport": 1815,
-        "allows":"192.168.88.100,192.168.88.100",
-        "dictfile": "./radiusd/dict/dictionary",
-        "debug":1,
-        "cache_timeout":600
+        "authport": 1812,
+        "cache_timeout": 600,
+        "debug": 1,
+        "dictfile": "./radiusd/dict/dictionary"
     },
-    "admin":
-    {
-        "httpport":1816,
-        "debug":1
-    },
-    "customer":
-    {
-        "httpport":1817,
-        "debug":1
-    }    
+    "secret": "ztBLgQ5dMyc5KfhWFmFSS90yusLQXZoCOEqOSc1cTeQrA96FwcNpyK7FUsVwEkRVzHmLuzZUtiNrjePdUA8YFOB1CmqF9bXIP3XOD8Au4UsV4XQWXBEAhq1Hz9LLPGVw"
 }

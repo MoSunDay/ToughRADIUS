@@ -46,18 +46,29 @@ class SlcNode(DeclarativeBase):
 
 class SlcOperator(DeclarativeBase):
     """操作员表 操作员类型 0 系统管理员 1 普通操作员"""
-    __tablename__ = 'slc_rad_operator'
+    __tablename__ = 'slc_operator'
 
     __table_args__ = {}
 
     #column definitions
     id = Column(u'id', INTEGER(), primary_key=True, nullable=False,doc=u"操作员id")
-    node_id = Column('node_id', INTEGER(), nullable=False,doc=u"操作员区域")
     operator_type = Column('operator_type', INTEGER(), nullable=False,doc=u"操作员类型")
     operator_name = Column(u'operator_name', VARCHAR(32), nullable=False,doc=u"操作员名称")
     operator_pass = Column(u'operator_pass', VARCHAR(length=128), nullable=False,doc=u"操作员密码")
     operator_status = Column(u'operator_status', INTEGER(), nullable=False,doc=u"操作员状态,0/1")
-    operator_desc = Column(u'operator_desc', VARCHAR(255), nullable=False,doc=u"操作员描述")    
+    operator_desc = Column(u'operator_desc', VARCHAR(255), nullable=False,doc=u"操作员描述")   
+    
+class SlcOperatorRule(DeclarativeBase):
+    """操作员权限表"""
+    __tablename__ = 'slc_operator_rule'
+
+    __table_args__ = {} 
+    id = Column(u'id', INTEGER(), primary_key=True, nullable=False,doc=u"权限id")
+    operator_name = Column(u'operator_name', VARCHAR(32), nullable=False,doc=u"操作员名称")
+    rule_path = Column(u'rule_path', VARCHAR(128), nullable=False,doc=u"权限URL")
+    rule_name = Column(u'rule_name', VARCHAR(128), nullable=False,doc=u"权限名称")
+    rule_category = Column(u'rule_category', VARCHAR(128), nullable=False,doc=u"权限分类")
+    
 
 class SlcParam(DeclarativeBase):
     """系统参数表  <radiusd default table>"""
@@ -90,23 +101,6 @@ class SlcRadBas(DeclarativeBase):
     #relation definitions
 
 
-class SlcRadGroup(DeclarativeBase):
-    """认证策略用户组 <radiusd default table>"""
-    __tablename__ = 'slc_rad_group'
-
-    __table_args__ = {}
-
-    #column definitions
-    id = Column(u'id', INTEGER(), primary_key=True, nullable=False,doc=u"用户组id")
-    group_name = Column(u'group_name', VARCHAR(length=64), nullable=False,doc=u"用户组名")
-    group_desc = Column(u'group_desc', VARCHAR(length=255),doc=u"用户组描述")
-    bind_mac = Column(u'bind_mac', SMALLINT(), nullable=False,doc=u"是否绑定mac")
-    bind_vlan = Column(u'bind_vlan', SMALLINT(), nullable=False,doc=u"是否绑定vlan")
-    concur_number = Column(u'concur_number', INTEGER(), nullable=False,doc=u"并发数")
-    update_time = Column(u'update_time', VARCHAR(length=19), nullable=False,doc=u"更新时间")
-
-    #relation definitions
-
 
 class SlcRadRoster(DeclarativeBase):
     """黑白名单 0 白名单 1 黑名单 <radiusd default table>"""
@@ -117,7 +111,6 @@ class SlcRadRoster(DeclarativeBase):
     #column definitions
     id = Column(u'id', INTEGER(), primary_key=True, nullable=False,doc=u"黑白名单id")
     mac_addr = Column('mac_addr', VARCHAR(length=17), nullable=False,doc=u"mac地址")
-    account_number = Column('account_number', VARCHAR(length=32),doc=u"上网账号")
     begin_time = Column('begin_time', VARCHAR(length=19), nullable=False,doc=u"生效开始时间")
     end_time = Column('end_time', VARCHAR(length=19), nullable=False,doc=u"生效结束时间")
     roster_type = Column('roster_type', SMALLINT(), nullable=False,doc=u"黑白名单类型")
@@ -167,6 +160,47 @@ class SlcMemberOrder(DeclarativeBase):
     order_desc = Column('order_desc', VARCHAR(length=255),doc=u"订单描述")
     create_time = Column('create_time', VARCHAR(length=19), nullable=False,doc=u"交易时间")
 
+class SlcRechargerCard(DeclarativeBase):
+    """
+    充值卡表
+    批次号：batch_no，以年月开始紧跟顺序号，如201502001 
+    通用余额卡：无资费类型
+    资费套餐卡：买断流量卡，时长卡，包月，买断卡无面值
+    状态 card_status 0 未激活 1 已激活 2 已使用 3 已回收 
+    """
+    __tablename__ = 'slc_recharge_card'
+
+    __table_args__ = {}
+    
+    id = Column(u'id', INTEGER(), primary_key=True, nullable=False,doc=u"充值卡id")
+    batch_no = Column('batch_no', INTEGER(), nullable=False,doc=u"批次号")
+    card_number = Column('card_number', VARCHAR(length=16),nullable=False,unique=True,doc=u"充值卡号")
+    card_passwd = Column('card_passwd', VARCHAR(length=128),nullable=False,doc=u"充值卡密码")
+    card_type = Column('card_type', INTEGER(),nullable=False,doc=u"充值卡类型")
+    card_status = Column('card_status', INTEGER(), nullable=False,doc=u"状态")
+    product_id = Column('product_id', INTEGER(),nullable=True,doc=u"资费id")
+    fee_value = Column('fee_value', INTEGER(), nullable=False,doc=u"充值卡面值-元")
+    months = Column('months', INTEGER(),nullable=True,doc=u"授权月数")
+    time_length = Column('time_length', INTEGER(), nullable=False,doc=u"买断时长-分钟")
+    flow_length = Column('flow_length', INTEGER(), nullable=False,doc=u"买断流量-kb")
+    expire_date = Column('expire_date', VARCHAR(length=10), nullable=False,doc=u"过期时间- ####-##-##")
+    create_time = Column('create_time', VARCHAR(length=19), nullable=False,doc=u"创建时间")
+    
+class SlcRechargeLog(DeclarativeBase):
+    """
+    充值记录
+    """
+    __tablename__ = 'slc_recharge_log'
+
+    __table_args__ = {}
+    
+    id = Column(u'id', INTEGER(), primary_key=True, nullable=False,doc=u"日志id")
+    card_number = Column('card_number', VARCHAR(length=16),nullable=False,doc=u"充值卡号")
+    member_id = Column('member_id', INTEGER(),nullable=False,doc=u"用户id")
+    account_number = Column('account_number', VARCHAR(length=32),nullable=False,doc=u"上网账号")
+    recharge_status = Column('recharge_status', INTEGER(), nullable=False,doc=u"充值结果")
+    recharge_time = Column('recharge_time', VARCHAR(length=19), nullable=False,doc=u"充值时间")
+
 
 class SlcRadAccount(DeclarativeBase):
     """
@@ -188,7 +222,8 @@ class SlcRadAccount(DeclarativeBase):
     status = Column('status', INTEGER(), nullable=False,doc=u"用户状态")
     install_address = Column('install_address', VARCHAR(length=128), nullable=False,doc=u"装机地址")
     balance = Column('balance', INTEGER(), nullable=False,doc=u"用户余额-分")
-    time_length = Column('time_length', INTEGER(), nullable=False,doc=u"用户时长-秒")
+    time_length = Column('time_length', INTEGER(), nullable=False,default=0,doc=u"用户时长-秒")
+    flow_length = Column('flow_length', INTEGER(), nullable=False,default=0,doc=u"用户流量-kb")
     expire_date = Column('expire_date', VARCHAR(length=10), nullable=False,doc=u"过期时间- ####-##-##")
     user_concur_number = Column('user_concur_number', INTEGER(), nullable=False,doc=u"用户并发数")
     bind_mac = Column('bind_mac', SMALLINT(), nullable=False,doc=u"是否绑定mac")
@@ -325,6 +360,20 @@ class SlcRadOnline(DeclarativeBase):
     nas_port_id = Column(u'nas_port_id', VARCHAR(length=255), nullable=False,doc=u"接入端口物理信息")
     billing_times = Column(u'billing_times', INTEGER(), nullable=False,doc=u"已记账时间")
     start_source = Column(u'start_source', SMALLINT(), nullable=False,doc=u"会话开始来源")
+    
+class SlcRadOnlineStat(DeclarativeBase):
+    """用户在线统计表 <radiusd default table>"""
+    __tablename__ = 'slc_rad_online_stat'
+
+    __table_args__ = {}
+
+    #column definitions
+    node_id = Column('node_id', INTEGER(),primary_key=True, nullable=False,autoincrement=False,doc=u"区域id")
+    day_code = Column(u'day_code', VARCHAR(length=10), primary_key=True, nullable=False,doc=u"统计日期")
+    time_num = Column(u'time_num', INTEGER(), primary_key=True, nullable=False,autoincrement=False,doc=u"统计小时")
+    total = Column(u'total', INTEGER(),doc=u"在线数")
+
+    #relation definitions
 
 class SlcRadAcceptLog(DeclarativeBase):
     '''
@@ -404,11 +453,31 @@ def init_db(db):
     param06.param_value = u'000000'
     db.add(param06)  
     
+    param061 = SlcParam()
+    param061.param_name = u'7_rcard_order_url'
+    param061.param_desc = u'充值卡订购网站地址'
+    param061.param_value = u'http://www.tmall.com'
+    db.add(param061)
+    
     param07 = SlcParam()
     param07.param_name = u'8_portal_secret'
     param07.param_desc = u'portal登陆密钥'
     param07.param_value = u'abcdefg123456'
-    db.add(param07)           
+    db.add(param07)   
+    
+    param08 = SlcParam()
+    param08.param_name = u'9_expire_notify_days'
+    param08.param_desc = u'到期提醒提前天数'
+    param08.param_value = u'7'
+    db.add(param08)
+    
+    param09 = SlcParam()
+    param09.param_name = u'9_expire_addrpool'
+    param09.param_desc = u'到期提醒下发地址池'
+    param09.param_value = u'expire'
+    db.add(param09)
+    
+               
 
     param1 = SlcParam()
     param1.param_name = u'max_session_timeout'
@@ -425,12 +494,11 @@ def init_db(db):
 
     opr = SlcOperator()
     opr.id = 1
-    opr.node_id = 1
     opr.operator_name = 'admin'
-    opr.operator_type = 1
+    opr.operator_type = 0
     opr.operator_pass = md5('root').hexdigest()
     opr.operator_desc = 'admin'
-    opr.operator_status = 1
+    opr.operator_status = 0
     db.add(opr)
 
     bas = SlcRadBas()
@@ -485,7 +553,7 @@ def init_db(db):
     member = SlcMember()
     member.member_id = 1000001
     member.member_name = 'tester'
-    member.password = utils.encrypt('888888')
+    member.password = md5('888888').hexdigest()
     member.node_id = 1
     member.realname = 'tester'
     member.idcard = '0'
@@ -549,6 +617,49 @@ def init_db(db):
 
     db.commit()
 
+def init_test(db):
+    import random
+    for i in range(1000):
+        member = SlcMember()
+        member.member_id = 100000 + i
+        member.member_name = 'tester%s'%i
+        member.password = utils.encrypt('888888')
+        member.node_id = 1
+        member.realname = 'test00%s'%i
+        member.idcard = '0'
+        member.sex = '1'
+        member.age = '33'
+        member.email = 'test@test.com'
+        member.mobile = '1366666666'
+        member.address = 'hunan changsha'
+        member.create_time = '2014-12-10 23:23:21'
+        member.update_time = '2014-12-10 23:23:21'
+        db.add(member)        
+        account = SlcRadAccount()
+        account.account_number = 'test00%s'%i
+        account.member_id = member.member_id
+        account.product_id = random.choice([1,2])
+        account.domain_name = 'cmcc'
+        account.group_id = 1
+        account.install_address = 'hunan'
+        account.ip_address = ''
+        account.mac_addr = ''
+        account.password = utils.encrypt('888888')
+        account.status = 1
+        account.balance = account.product_id == 2 and 10000 or 0
+        account.basic_fee = 0
+        account.time_length = 0
+        account.flow_length = 0
+        account.expire_date = '2015-12-30'
+        account.user_concur_number = 0
+        account.bind_mac = 0
+        account.bind_vlan = 0
+        account.vlan_id = 0
+        account.vlan_id2 = 0
+        account.create_time = '2014-12-10 23:23:21'
+        account.update_time = '2014-12-10 23:23:21'
+        db.add(account)
+    db.commit()    
 
 def build_db(config=None):
     if config['dbtype'] != 'mysql':
@@ -593,6 +704,15 @@ def install2(config=None):
     engine,_ = get_engine(config)
     db = scoped_session(sessionmaker(bind=engine, autocommit=False, autoflush=True))()  
     init_db(db)
+    
+def install_test(config=None):
+    print 'starting init testdata...'
+    engine,_ = get_engine(config)
+    db = scoped_session(sessionmaker(bind=engine, autocommit=False, autoflush=True))()  
+    init_test(db)
+    with open('./testusers.txt','wb') as tf:
+        for i in range(1000):
+            tf.write('test00%s,888888\n'%(i,))
 
 def update(config=None):
     print 'starting update database...'

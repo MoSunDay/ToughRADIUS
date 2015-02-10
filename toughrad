@@ -17,8 +17,41 @@ fi
 appdir=/opt/toughradius
 rundir=/var/toughradius
 
+usage () 
+{
+        cat <<EOF
+Usage: $0 [OPTIONS]
+  start              start toughradius and mysql (if mysql not running),not support docker
+  stop               stop toughradius 
+  restart            restart toughradius, not support docker
+  status             show toughradius run status
+  docker             start toughradius in docker container    
+  upgrade            update toughradius version and restart
+  startdb            start mysqld_safe
+  stopdb             stop mysqld_safe
+  backupdb           backup toughradius database and send to ftp
+  tracedb            trace mysqld log
+  tracerad           trace toughradius radius log
+  traceadmin         trace admin console log
+  tracecustomer      trace customer console log
+     
+All other options are passed to the toughrad program.
+
+EOF
+        exit 1
+}
+
+# not support docker
 start()
 {
+    if [ -x /usr/bin/mysqld_safe ]
+    then
+        if [ ! $(pgrep -f mysqld_safe | wc -l) -gt 0 ]
+        then
+            /usr/bin/mysqld_safe --defaults-file=${rundir}/mysql/my.cnf --user=mysql &
+        fi
+    fi
+    
     if [ $( pgrep -f supervisord | wc -l ) -gt 0 ]
     then 
         supervisorctl start all 
@@ -27,6 +60,29 @@ start()
     fi 
 }
 
+# support docker start
+docker()
+{
+    if [ ! -f ${rundir}/install.log ]
+    then
+        # application not init,exec setup
+        sh ${appdir}/install/docker-install.sh setup
+    else
+        # database not running, start it
+        if [ ! $(pgrep -f mysqld_safe | wc -l) -gt 0 ]
+        then
+            /usr/bin/mysqld_safe --defaults-file=${rundir}/mysql/my.cnf --user=mysql &
+        fi
+        
+         # toughradius not running, start it
+        if [ ! $( pgrep -f supervisord | wc -l ) -gt 0 ]
+        then 
+            supervisord -n -c ${rundir}/supervisord.conf
+        fi 
+    fi
+}
+
+# support docker
 stop()
 {
     if [ $( pgrep -f supervisord | wc -l ) -gt 0 ]
@@ -38,6 +94,7 @@ stop()
     fi 
 }
 
+# support docker
 status()
 {
     if [ $( pgrep -f supervisord | wc -l ) -gt 0 ]
@@ -49,6 +106,7 @@ status()
 
 }
 
+# not support docker
 restart()
 {
     if [ $( pgrep -f supervisord | wc -l ) -gt 0 ]
@@ -59,6 +117,7 @@ restart()
     fi 
 }
 
+# support docker
 upgrade()
 {
     echo 'starting upgrade...' 
@@ -68,18 +127,53 @@ upgrade()
     echo 'upgrade done'
 }
 
+# support docker
 startdb()
 {
     /usr/bin/mysqld_safe --defaults-file=${rundir}/mysql/my.cnf --user=mysql &
 }
 
+# support docker
 stopdb()
 {
     mysqladmin --defaults-file=${rundir}/mysql/my.cnf -uroot shutdown
 }
 
+# support docker
+backupdb()
+{
+    python ${appdir}/backupdb.py -c ${rundir}/radiusd.json
+}
+
+tracedb()
+{
+    echo 'type ctrl-c exit'
+    tail -f ${rundir}/log/mysqld.log
+}
+
+tracerad()
+{
+    echo 'type ctrl-c exit'
+    tail -f ${rundir}/log/radiusd.log
+}
+
+traceadmin()
+{
+    echo 'type ctrl-c exit'
+    tail -f ${rundir}/log/rad_console.log
+}
+
+tracecustomer()
+{
+    echo 'type ctrl-c exit'
+    tail -f ${rundir}/log/rad_customer.log
+}
 
 case "$1" in
+
+  help)
+    usage
+  ;;
 
   start)
     start
@@ -107,11 +201,35 @@ case "$1" in
   
   stopdb)
     stopdb
-  ;;       
+  ;;  
+  
+  backupdb)
+    backupdb
+  ;;   
+  
+  docker)
+    docker
+  ;;  
+  
+  tracedb)
+    tracedb
+  ;;     
+  
+  tracerad)
+    tracerad
+  ;;     
+  
+  traceadmin)
+    traceadmin
+  ;;     
+  
+  tracecustomer)
+    tracecustomer
+  ;;     
 
 
   *)
-    echo "Usage: $0 {start|stop|status|restart|upgrade}"
+   usage
   ;;
 
 esac

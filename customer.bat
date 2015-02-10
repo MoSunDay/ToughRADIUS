@@ -1,1 +1,0 @@
-cd console && ..\toughrad.exe customer.py -c ../config.json || pause

@@ -6,13 +6,15 @@ import re
 import itertools
 import net
 
+"""basic from web.py: makes web apps (http://webpy.org)"""
 
-__version__ = "0.01"
+__version__ = "0.37"
 __author__ = [
-    "jamiesun <jamiesun.net@gmail.com>",
+    "Aaron Swartz <me@aaronsw.com>",
+    "Anand Chitipothu <anandology@gmail.com>"
 ]
 __license__ = "public domain"
-__contributors__ = "see https://github.com/jamiesun/pyforms"
+__contributors__ = "see https://github.com/webpy/webpy"
 
 class Storage(dict):
     def __getattr__(self, key): 
@@ -122,7 +124,7 @@ class Form(object):
         for i in self.inputs:
             out.append('    <div class="form-group">\n')
             if not i.is_hidden():
-                out.append('        <label class="col-sm-3 control-label"  for="%s">%s</label>\n' % (i.id, net.websafe(i.description)))
+                out.append('        <label class="col-sm-4 control-label"  for="%s">%s</label>\n' % (i.id, net.websafe(i.description)))
             out.append(i.pre)
             out.append('        <div class="col-sm-6">\n')
             out.append("        %s\n"%i.render())

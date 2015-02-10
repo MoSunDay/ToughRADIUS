@@ -13,19 +13,19 @@ depend()
 {
     echo "install lib"
     yum update -y
-    yum install -y wget git gcc python-devel python-setuptools tcpdump
+    yum install -y wget git gcc python-devel python-setuptools tcpdump crontabs
 
     echo "python package"
     easy_install pip 
     easy_install supervisor
-    easy_install argparse
     echo "install depend done!"
 }
 
 mysql5()
 {
     echo "install mysql"
-    yum install -y mysql-server mysql-devel 
+    rpm -ivh http://dev.mysql.com/get/mysql-community-release-el7-5.noarch.rpm
+    yum install -y mysql-community-server mysql-community-devel 
     echo "install mysql done!"
 }
 
@@ -35,6 +35,8 @@ radius()
     echo "fetch ToughRADIUS latest"
     git clone https://github.com/talkincode/ToughRADIUS.git ${appdir}
     pip install -r ${appdir}/requirements.txt
+    ln -s ${appdir}/toughrad /usr/bin/toughrad 
+    chmod +x /usr/bin/toughrad
     echo "fetch ToughRADIUS done!"
 }
 
@@ -47,16 +49,10 @@ setup()
     
     yes | cp -f ${appdir}/install/my.cnf ${rundir}/mysql/my.cnf
     yes | cp -f ${appdir}/install/radiusd.json ${rundir}/radiusd.json
-    yes | cp -f ${appdir}/install/supervisord.conf ${rundir}/supervisord.conf  
-    
-    yes | cp -f ${appdir}/toughrad /etc/init.d/toughrad
-    chmod +x /etc/init.d/toughrad  
-    chkconfig --add toughrad
-    chkconfig toughrad on
-    
-    ln -s ${appdir}/toughrad /usr/bin/toughrad 
-    chmod +x /usr/bin/toughrad
-    
+    yes | cp -f ${appdir}/install/supervisord.conf ${rundir}/supervisord.conf    
+    yes | cp -f ${appdir}/install/toughrad.service /usr/lib/systemd/system/toughrad.service
+    chmod 754 /usr/lib/systemd/system/toughrad.service
+
     chown -R mysql:mysql ${rundir}/mysql
     
     echo "starting install mysql database;"
@@ -75,18 +71,16 @@ setup()
     echo "setup toughradius database.."
 
     python ${appdir}/createdb.py -c ${rundir}/radiusd.json -i=1
+    
+    echo "add crontab task"
+    
+    crontab ${appdir}/install/tasks.cron
 
     echo "starting supervisord..."
-
-    supervisord -c ${rundir}/supervisord.conf
-
-    sleep 3s
-
-    echo "ToughRADIUS service status"
-
-    supervisorctl status
     
-    echo "setup done!"
+    echo "ok" > ${rundir}/install.log
+
+    supervisord -n -c ${rundir}/supervisord.conf
 }
 
 unsetup()
@@ -97,7 +91,7 @@ unsetup()
     supervisorctl shutdown
     echo ${rundir}
     rm -fr ${rundir}
-    rm -f /usr/bin/toughrad
+    rm -f /usr/lib/systemd/system/toughrad.service
     echo 'unsetup done!'
 }
 

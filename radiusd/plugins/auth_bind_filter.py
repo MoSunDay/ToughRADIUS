@@ -7,6 +7,9 @@ from store import store
 def process(req=None,resp=None,user=None):
     """check mac bind & vlan bind"""
     macaddr = req.get_mac_addr()
+    if store.is_white_roster(macaddr):
+        return resp
+        
     if macaddr and  user['mac_addr']:
         if user['bind_mac'] == 1 and macaddr not in user['mac_addr']:
             return error_auth(resp,"macaddr bind not match")
@@ -14,6 +17,7 @@ def process(req=None,resp=None,user=None):
         store.update_user_mac(user['account_number'], macaddr)
 
     vlan_id,vlan_id2 = req.get_vlanids()
+    print vlan_id,vlan_id2
     if vlan_id and user['vlan_id']:
         if user['bind_vlan'] == 1 and vlan_id != user['vlan_id']:
             return error_auth(resp,"vlan_id bind not match")

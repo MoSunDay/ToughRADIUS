@@ -244,6 +244,10 @@ def main():
     _config = json.loads(open(args.conf).read())
     _database = _config['database']
     _radiusd = _config['radiusd']  
+    _secret = _config['secret']
+    
+    # update aescipher
+    utils.update_secret(_secret)
 
     # init args
     if args.authport:_radiusd['authport'] = args.authport
@@ -263,6 +267,7 @@ def main():
     _runstat = statistics.RunStat()
     _middleware = middleware.Middleware()
     _debug = _radiusd['debug'] or settings.debug
+    
 
     # init coa clients
     _coa_clients = {}
@@ -291,6 +296,8 @@ def main():
         factory.protocol.midware = _middleware
         factory.protocol.runstat = _runstat
         factory.protocol.coa_clients = _coa_clients
+        factory.protocol.auth_server = auth_protocol
+        factory.protocol.acct_server = acct_protocol
         reactor.listenTCP(_radiusd['adminport'], factory)
 
     start_servers()

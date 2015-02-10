@@ -45,10 +45,11 @@ db_config = {
 auth_plugins = [
     'mac_parse',
     'vlan_parse',
+    'auth_roster_filter',
     'auth_user_filter',
     'auth_bind_filter',
-    'auth_group_filter',
     'auth_policy_filter',
+    'auth_rate_limit',
     'auth_std_accept'
 ]
 

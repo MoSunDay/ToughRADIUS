@@ -1,15 +1,23 @@
 <%inherit file="base.html"/>
 
 <%def name="head()">
-        <script>
-            function release(account_number)
-            {
-                params = {account_number:account_number};
-                $.post("/ops/user/release", params, function (data) {
-                    alert(data.msg)
-                },"json");
-            }
-        </script>
+<script>
+    function release(account_number)
+    {
+        params = {account_number:account_number};
+        $.post("/ops/user/release", params, function (data) {
+            alert(data.msg)
+        },"json");
+    }
+    function do_submit(){
+        $("#query_form").attr("action", "/ops/user");
+        $("#query_form").submit();
+    }
+    function do_export(){
+        $("#query_form").attr("action", "/ops/user/export");
+        $("#query_form").submit();
+    }
+</script>
 </%def>
 
 <%def name="body()">
@@ -21,16 +29,18 @@
                 <label for="node_id" class="col-md-2 control-label">区域</label>
                 <div class="col-md-3">
                     <select id="node_id" name="node_id" class="form-control" >
+                        <option value=""></option>
                         % for node in node_list:
-                          <option value="${node.id}" ${node.id==node_id and "selected" or ""}>${node.node_name}</option>
+                          <option value="${node.id}" ${str(node.id)==node_id and "selected" or ""}>${node.node_name}</option>
                         % endfor
                     </select>
                 </div>            
                 <label for="product_id" class="col-md-2 control-label">产品套餐</label>
                 <div class="col-md-3">
                 <select id="product_id" name="product_id" class="form-control" >
+                    <option value=""></option>
                         % for product in product_list:
-                          <option value="${product.id}" ${product.id==product_id and "selected" or ""}>${product.product_name}</option>
+                          <option value="${product.id}" ${str(product.id)==product_id and "selected" or ""}>${product.product_name}</option>
                         % endfor
                 </select>
                 </div>
@@ -54,8 +64,10 @@
             </div>
             <div class="form-group">
                 <div class="col-md-offset-5 col-md-7">
-                    <button type="submit" class="btn btn-primary">查询</button>
-                    <a href="/ops/user/export" class="btn btn-md btn-default"><span class="glyphicon glyphicon-arrow-down"></span>导出账号信息</a>
+                    <button type="button" onclick="do_submit();" class="btn btn-primary">查询</button>
+                    % if permit.match('/ops/user/export'):
+                    <a href="javascript:do_export();" class="btn btn-md btn-default"><span class="glyphicon glyphicon-arrow-down"></span>导出账号信息</a>
+                    % endif
                 </div>
             </div>
         </form>
@@ -75,13 +87,28 @@
             <tbody>
             % for user,_realname,_product_name in page_data.result:
             <tr>
-                <td><a href="/ops/user/detail?account_number=${user.account_number}">${user.account_number}</a></td>
-                <td><a href="/bus/member/detail?member_id=${user.member_id}">${_realname}</a></td></td>
+                <td>
+                    <a href="/ops/user/detail?account_number=${user.account_number}">${user.account_number}</a>
+                </td>
+                <td>
+                    % if permit.match('/bus/member/detail'):
+                    <a href="/bus/member/detail?member_id=${user.member_id}">${_realname}</a>
+                    % else:
+                    ${_realname}
+                    % endif
+                </td></td>
                 <td>${_product_name}</td>
                 <td>${{1:u"正常",2:u"停机",3:u"销户",4:u"到期",6:u"未激活"}[user.status]}</td>
                 <td>${user.expire_date}</td>
                 <td>${user.create_time}</td>
-                 <td><a class="opt-btn btn-default" href="javascript:release('${user.account_number}');">释放绑定</a><a class="opt-btn btn-default" href="/bus/account/update?account_number=${user.account_number}">账号修改</a></td>
+                 <td>
+                     % if permit.match('/ops/user/release'):
+                     <a class="opt-btn btn-default" href="javascript:release('${user.account_number}');">释放绑定</a>
+                     % endif
+                     % if permit.match('/bus/account/update'):
+                     <a class="opt-btn btn-default" href="/bus/account/update?account_number=${user.account_number}">账号修改</a>
+                     % endif
+                 </td>
             </tr>
             % endfor
             </tbody>

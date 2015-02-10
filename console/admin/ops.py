@@ -15,6 +15,7 @@ import forms
 import datetime
 from libs import utils
 from base import *
+from sqlalchemy import func
 
 app = Bottle()
 
@@ -24,7 +25,7 @@ app = Bottle()
 ###############################################################################
                    
 @app.route('/user',apply=auth_opr,method=['GET','POST'])
-@app.get('/user/export',apply=auth_opr)
+@app.post('/user/export',apply=auth_opr)
 def user_query(db):   
     node_id = request.params.get('node_id')
     product_id = request.params.get('product_id')
@@ -60,18 +61,22 @@ def user_query(db):
                 i.account_number, _realname, _product_name, 
                 i.expire_date,utils.fen2yuan(i.balance),
                 i.time_length,i.user_concur_number,i.ip_address,
-                i.status,i.create_time
+                forms.user_state[i.status],i.create_time
             ))
         name = u"RADIUS-USER-" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + ".xls"
         with open(u'./static/xls/%s' % name, 'wb') as f:
             f.write(data.xls)
         return static_file(name, root='./static/xls',download=True)
+        
+permit.add_route("/ops/user",u"上网账号查询",u"运维管理",is_menu=True,order=0)
+permit.add_route("/ops/user/export",u"账号查询导出",u"运维管理",order=0.01)
+
 
 @app.get('/user/trace',apply=auth_opr)
 def user_trace(db):   
     return render("ops_user_trace", bas_list=db.query(models.SlcRadBas))
 
-
+permit.add_route("/ops/user/trace",u"用户消息跟踪",u"运维管理",is_menu=True,order=1)
                    
 @app.get('/user/detail',apply=auth_opr)
 def user_detail(db):   
@@ -104,11 +109,13 @@ def user_detail(db):
         return render("error",msg=u"用户不存在")
     user_attrs = db.query(models.SlcRadAccountAttr).filter_by(account_number=account_number)
     return render("ops_user_detail",user=user,user_attrs=user_attrs)
+    
+permit.add_route("/ops/user/detail",u"账号详情",u"运维管理",order=1.01)
 
 @app.post('/user/release',apply=auth_opr)
 def user_release(db):   
     account_number = request.params.get('account_number')  
-    user = db.query(models.SlcRadAccount).filter_by(account_number=account_number)
+    user = db.query(models.SlcRadAccount).filter_by(account_number=account_number).first()
     user.mac_addr = ''
     user.vlan_id = 0
     user.vlan_id2 = 0
@@ -123,6 +130,8 @@ def user_release(db):
     db.commit()
     websock.update_cache("account",account_number=account_number)
     return dict(code=0,msg=u"解绑成功")
+    
+permit.add_route("/ops/user/release",u"用户释放绑定",u"运维管理",order=1.02)    
 
 ###############################################################################
 # online manage      
@@ -168,6 +177,7 @@ def online_query(db):
                    node_list=db.query(models.SlcNode), 
                    bas_list=db.query(models.SlcRadBas),**request.params)
 
+permit.add_route("/ops/online",u"在线用户查询",u"运维管理",is_menu=True,order=2)
 
 ###############################################################################
 # ticket manage        
@@ -214,6 +224,7 @@ def ticket_query(db):
     return render("ops_ticket_list", page_data = get_page_data(_query),
                node_list=db.query(models.SlcNode),**request.params)
 
+permit.add_route("/ops/ticket",u"上网日志查询",u"运维管理",is_menu=True,order=3)
 
 ###############################################################################
 # ops log manage        
@@ -221,25 +232,56 @@ def ticket_query(db):
 
 @app.route('/opslog',apply=auth_opr,method=['GET','POST'])
 def opslog_query(db): 
-    node_id = request.params.get('node_id')
     operator_name = request.params.get('operator_name')
     query_begin_time = request.params.get('query_begin_time')  
     query_end_time = request.params.get('query_end_time')  
-    _query = db.query(
-        models.SlcRadOperateLog,
-        models.SlcOperator.node_id,
-    ).filter(
+    keyword = request.params.get('keyword')
+    _query = db.query(models.SlcRadOperateLog).filter(
         models.SlcRadOperateLog.operator_name == models.SlcOperator.operator_name,
-    )
-    if node_id:
-        _query = _query.filter(models.SlcOperator.node_id == node_id)    
+    ) 
     if operator_name:
         _query = _query.filter(models.SlcRadOperateLog.operator_name == operator_name)
+    if keyword:
+        _query = _query.filter(models.SlcRadOperateLog.operate_desc.like("%"+keyword+"%"))        
     if query_begin_time:
-        _query = _query.filter(models.SlcRadOperateLog.operate_time >= query_begin_time)
+        _query = _query.filter(models.SlcRadOperateLog.operate_time >= query_begin_time+' 00:00:00')
     if query_end_time:
-        _query = _query.filter(models.SlcRadOperateLog.operate_time <= query_end_time)
+        _query = _query.filter(models.SlcRadOperateLog.operate_time <= query_end_time+' 23:59:59')
     _query = _query.order_by(models.SlcRadOperateLog.operate_time.desc())
     return render("ops_log_list", 
         node_list=db.query(models.SlcNode),
         page_data = get_page_data(_query),**request.params)
+
+
+permit.add_route("/ops/opslog",u"操作日志查询",u"运维管理",is_menu=True,order=4)
+
+###############################################################################
+# ops log manage        
+###############################################################################
+
+@app.get('/online/stat',apply=auth_opr)
+def online_stat_query(db): 
+    return render(
+        "ops_online_stat",
+        node_list=db.query(models.SlcNode),
+        node_id=None,
+        day_code=utils.get_currdate()
+    )
+
+@app.route('/online/statdata',apply=auth_opr,method=['GET','POST'])
+def online_stat_data(db):    
+    node_id = request.params.get('node_id')
+    day_code = request.params.get('day_code')     
+    hours = [str(i) for i in range(24)]
+    dataset = []
+    for hour in hours:
+        _query = db.query(func.sum(models.SlcRadOnlineStat.total))
+        if node_id:
+            _query = _query.filter(models.SlcRadOnlineStat.node_id == node_id)
+        if day_code:
+            _query = _query.filter(models.SlcRadOnlineStat.day_code == day_code)
+        hour_total = _query.filter(models.SlcRadOnlineStat.time_num == hour).scalar() or 0
+        dataset.append(int(hour_total))
+    return dict(code=0,hours=hours,dataset=dataset)
+        
+permit.add_route("/ops/online/stat",u"在线用户统计",u"运维管理",is_menu=True,order=5)
